@@ -89,3 +89,7 @@ pip install -r requirements.txt
 🔹 Step 4: Install Dependencies
 
 pip install -r requirements.txt
+
+🔹 Step 5: Run the Application
+
+streamlit run app.py
