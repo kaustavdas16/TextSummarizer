@@ -93,3 +93,8 @@ pip install -r requirements.txt
 🔹 Step 5: Run the Application
 
 streamlit run app.py
+
+
+🔹 If Error Comes
+
+pip install transformers==4.37.2
