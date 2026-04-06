@@ -1,6 +1,6 @@
 # 🧠 Text Summarization Studio
 
-A Final Year Generative AI Project that implements multiple NLP and Transformer-based models to perform text summarization and compare their outputs using ROUGE evaluation.
+A Generative AI Project that implements multiple NLP and Transformer-based models to perform text summarization and compare their outputs using ROUGE evaluation.
 
 ---
 
@@ -18,20 +18,20 @@ A Final Year Generative AI Project that implements multiple NLP and Transformer-
   - SumBasic
   - NLTK
 
-- 🔹 Clean and Modern UI using Streamlit  
-- 🔹 ROUGE Score Evaluation (ROUGE-1, ROUGE-2, ROUGE-L)  
-- 🔹 Handles long text using chunking  
-- 🔹 Model comparison capability  
+- 🔹 Clean and Modern UI using Streamlit
+- 🔹 ROUGE Score Evaluation (ROUGE-1, ROUGE-2, ROUGE-L)
+- 🔹 Handles long text using chunking
+- 🔹 Model comparison capability
 
 ---
 
 ## 🧠 Tech Stack
 
-- Python  
-- Streamlit  
-- Hugging Face Transformers  
-- NLTK  
-- Sumy  
+- Python
+- Streamlit
+- Hugging Face Transformers
+- NLTK
+- Sumy
 
 ---
 
@@ -82,11 +82,9 @@ On Windows (Command Prompt):
 
 venv\Scripts\activate.bat
 
-
 🔹 Step 4: Install Dependencies
 
 pip install -r requirements.txt
-
 
 🔹 Step 4: Install Dependencies
 
