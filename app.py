@@ -12,50 +12,23 @@ from Models.lexrank_model import summarize_lexrank
 from Models.sumbasic_model import summarize_sumbasic
 from Models.nltk_model import summarize_nltk
 
-from Utils.helpers import calculate_rouge
+from Utils.helpers import calculate_rouge, limit_text
 
+# Page config
 st.set_page_config(page_title="Text Summarizer", layout="centered")
 
-
+# 🎨 Clean styling (no glitch-causing CSS)
 st.markdown("""
 <style>
-body {
-    background-color: #0e1117;
-    color: #ffffff;
-}
-
-/* Title */
 h1 {
     text-align: center;
-    font-size: 40px;
-    margin-bottom: 10px;
+    font-size: 38px;
 }
 
-/* Labels */
-label {
-    font-size: 16px !important;
-    font-weight: 500;
-}
-
-/* Text Area */
-textarea {
-    border-radius: 12px !important;
-    padding: 12px !important;
-}
-
-/* Button */
-button {
-    border-radius: 12px !important;
-    height: 45px;
-    font-size: 16px !important;
-    font-weight: 600;
-}
-
-/* Output Card */
 .result-box {
     background-color: #1c1f26;
     padding: 20px;
-    border-radius: 12px;
+    border-radius: 10px;
     margin-top: 20px;
 }
 </style>
@@ -63,20 +36,19 @@ button {
 
 # TITLE
 st.title("Text Summarization Studio")
-st.caption("Compare AI & NLP Models")
+st.caption("Multi-model Text Summarization with ROUGE Evaluation")
 
 # INPUT
 st.markdown("### Enter Text")
-text = st.text_area("", height=200)
+text = st.text_area("Enter your text here:", height=200)
 
-# Limit text size (safety)
-from Utils.helpers import limit_text
+# Limit text size (safe handling)
 text = limit_text(text)
 
 # MODEL SELECT
 st.markdown("### Select Model")
-model = st.selectbox("", [
-    "Pegasus", "T5", "BART", "BERT", "GPT-2",
+model = st.selectbox("Choose a model:", [
+    "Pegasus", "T5", "BART", "BERT (Simulated)", "GPT-2",
     "LSA", "TextRank", "LexRank", "SumBasic", "NLTK"
 ])
 
@@ -109,19 +81,19 @@ if st.button("Summarize"):
             elif model == "NLTK":
                 summary = summarize_nltk(text)
 
+        # Calculate ROUGE
         rouge = calculate_rouge(text, summary)
 
-        # OUTPUT CARD
-        st.markdown('<div class="result-box">', unsafe_allow_html=True)
+        # OUTPUT
+        st.markdown("---")
 
-        st.markdown(f"### Model: {model}")
+        st.markdown(f"## Model: {model}")
 
         st.markdown("### Summary")
         st.write(summary)
 
         st.markdown("### ROUGE Scores")
-        st.write(f"ROUGE-1: {rouge['ROUGE-1']}")
-        st.write(f"ROUGE-2: {rouge['ROUGE-2']}")
-        st.write(f"ROUGE-L: {rouge['ROUGE-L']}")
 
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f"**ROUGE-1&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{rouge['ROUGE-1']}", unsafe_allow_html=True)
+        st.markdown(f"**ROUGE-2&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{rouge['ROUGE-2']}", unsafe_allow_html=True)
+        st.markdown(f"**ROUGE-L&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{rouge['ROUGE-L']}", unsafe_allow_html=True)
