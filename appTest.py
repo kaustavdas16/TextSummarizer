@@ -28,7 +28,7 @@ model = st.selectbox("Select Model", [
 ])
 
 # BUTTON
-if st.button("Summarize"):
+if st.button("Summarize pwease"):
 
     if text.strip() == "":
         st.warning("Enter text first")

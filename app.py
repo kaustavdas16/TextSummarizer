@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 
 # Models
 from Models.bart_model import summarize_bart
@@ -17,7 +18,7 @@ from Utils.helpers import calculate_rouge, limit_text
 # Page config
 st.set_page_config(page_title="Text Summarizer", layout="centered")
 
-# 🎨 Clean styling (no glitch-causing CSS)
+# 🎨 Clean styling
 st.markdown("""
 <style>
 h1 {
@@ -42,8 +43,16 @@ st.caption("Multi-model Text Summarization with ROUGE Evaluation")
 st.markdown("### Enter Text")
 text = st.text_area("Enter your text here:", height=200)
 
-# Limit text size (safe handling)
+# Limit text size
 text = limit_text(text)
+
+# 🎛️ LENGTH SLIDER
+st.markdown("### Summary Length")
+length = st.select_slider(
+    "Choose summary length:",
+    options=[50, 100, 150, 200],
+    value=100
+)
 
 # MODEL SELECT
 st.markdown("### Select Model")
@@ -51,6 +60,20 @@ model = st.selectbox("Choose a model:", [
     "Pegasus", "T5", "BART", "BERT (Simulated)", "GPT-2",
     "LSA", "TextRank", "LexRank", "SumBasic", "NLTK"
 ])
+
+# Model Types
+model_type = {
+    "Pegasus": "Abstractive",
+    "T5": "Abstractive",
+    "BART": "Abstractive",
+    "BERT (Simulated)": "Encoder-based (Simulated)",
+    "GPT-2": "Generative (Not optimized)",
+    "LSA": "Extractive",
+    "TextRank": "Extractive",
+    "LexRank": "Extractive",
+    "SumBasic": "Extractive",
+    "NLTK": "Extractive"
+}
 
 # BUTTON
 if st.button("Summarize"):
@@ -60,16 +83,21 @@ if st.button("Summarize"):
     else:
         with st.spinner("Generating summary..."):
 
+            start = time.time()
+
+            # Generative models (use slider)
             if model == "Pegasus":
-                summary = summarize_pegasus(text)
+                summary = summarize_pegasus(text, max_length=length)
             elif model == "T5":
-                summary = summarize_t5(text)
+                summary = summarize_t5(text, max_length=length)
             elif model == "BART":
-                summary = summarize_bart(text)
-            elif model == "BERT":
-                summary = summarize_bert(text)
+                summary = summarize_bart(text, max_length=length)
+            elif model == "BERT (Simulated)":
+                summary = summarize_bert(text, max_length=length)
             elif model == "GPT-2":
-                summary = summarize_gpt2(text)
+                summary = summarize_gpt2(text, max_length=length)
+
+            # Extractive models
             elif model == "LSA":
                 summary = summarize_lsa(text)
             elif model == "TextRank":
@@ -81,17 +109,42 @@ if st.button("Summarize"):
             elif model == "NLTK":
                 summary = summarize_nltk(text)
 
-        # Calculate ROUGE
+            end = time.time()
+            time_taken = round(end - start, 2)
+
+        # ROUGE
         rouge = calculate_rouge(text, summary)
 
         # OUTPUT
         st.markdown("---")
 
         st.markdown(f"## Model: {model}")
+        st.markdown(f"**Model Type :** {model_type[model]}")
+        st.markdown(f"**Time Taken :** {time_taken} sec")
 
+        # SUMMARY
         st.markdown("### Summary")
         st.write(summary)
 
+        # ✅ WORD COUNT (NEW)
+        word_count = len(summary.split())
+        st.markdown(f"**Word Count :** {word_count}")
+
+        # DOWNLOAD BUTTON
+        file_content = (
+            f"Model: {model}\n"
+            f"Model Type: {model_type[model]}\n\n"
+            f"Summary:\n{summary}\n"
+        )
+
+        st.download_button(
+            label="📥 Download Summary",
+            data=file_content,
+            file_name=f"{model}_summary.txt",
+            mime="text/plain"
+        )
+
+        # ROUGE
         st.markdown("### ROUGE Scores")
 
         st.markdown(f"**ROUGE-1&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{rouge['ROUGE-1']}", unsafe_allow_html=True)

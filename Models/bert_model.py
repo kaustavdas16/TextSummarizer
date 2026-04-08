@@ -1,18 +1,15 @@
-import streamlit as st
 from transformers import pipeline
+import streamlit as st
 
 @st.cache_resource
-def load_bert():
+def load_model():
     return pipeline("summarization", model="facebook/bart-large-cnn")
 
-def summarize_bert(text):
-    summarizer = load_bert()
-
-    result = summarizer(
+def summarize_bert(text, max_length=100):
+    summarizer = load_model()
+    return summarizer(
         text,
-        max_length=120,
-        min_length=30,
-        num_beams=2
-    )
-
-    return result[0]['summary_text']
+        max_length=max_length,
+        min_length=max_length // 3,
+        do_sample=False
+    )[0]['summary_text']

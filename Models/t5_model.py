@@ -1,11 +1,15 @@
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from transformers import pipeline
+import streamlit as st
 
-tokenizer = T5Tokenizer.from_pretrained("t5-small")
-model = T5ForConditionalGeneration.from_pretrained("t5-small")
+@st.cache_resource
+def load_model():
+    return pipeline("summarization", model="t5-small")
 
-def summarize_t5(text):
-    input_text = "summarize: " + text
-    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
-
-    summary_ids = model.generate(inputs, max_length=150, min_length=40)
-    return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+def summarize_t5(text, max_length=100):
+    summarizer = load_model()
+    return summarizer(
+        text,
+        max_length=max_length,
+        min_length=max_length // 3,
+        do_sample=False
+    )[0]['summary_text']

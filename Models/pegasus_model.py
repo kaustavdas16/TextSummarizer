@@ -1,47 +1,33 @@
 import streamlit as st
 from transformers import PegasusTokenizer, PegasusForConditionalGeneration
 
-# ✅ Cache model (VERY IMPORTANT)
 @st.cache_resource
-def load_pegasus():
+def load_model():
     tokenizer = PegasusTokenizer.from_pretrained("google/pegasus-xsum")
     model = PegasusForConditionalGeneration.from_pretrained("google/pegasus-xsum")
     return tokenizer, model
 
-# ✅ Split long text into chunks
 def split_text(text, max_words=200):
     words = text.split()
-    chunks = []
+    return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words)]
 
-    for i in range(0, len(words), max_words):
-        chunk = " ".join(words[i:i + max_words])
-        chunks.append(chunk)
+def summarize_pegasus(text, max_length=100):
+    tokenizer, model = load_model()
 
-    return chunks
-
-# ✅ Main summarization function
-def summarize_pegasus(text):
-    tokenizer, model = load_pegasus()
-
-    chunks = split_text(text, max_words=200)
-
-    final_summary = []
+    chunks = split_text(text)
+    summaries = []
 
     for chunk in chunks:
-        inputs = tokenizer(
-            chunk,
-            return_tensors="pt",
-            truncation=True
-        )
+        inputs = tokenizer(chunk, return_tensors="pt", truncation=True)
 
         summary_ids = model.generate(
             inputs["input_ids"],
-            max_length=100,
-            min_length=30,
+            max_length=max_length,
+            min_length=max_length // 3,
             num_beams=4
         )
 
         summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-        final_summary.append(summary)
+        summaries.append(summary)
 
-    return " ".join(final_summary)
+    return " ".join(summaries)
