@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+import matplotlib.pyplot as plt
 
 # Models
 from Models.bart_model import summarize_bart
@@ -17,6 +18,20 @@ from Utils.helpers import calculate_rouge, limit_text
 
 # Page config
 st.set_page_config(page_title="Text Summarizer", layout="centered")
+
+# ✅ SESSION STATE INIT
+if "single_result" not in st.session_state:
+    st.session_state.single_result = None
+
+if "compare_results" not in st.session_state:
+    st.session_state.compare_results = None
+
+if "scores" not in st.session_state:
+    st.session_state.scores = None
+
+if "best_model" not in st.session_state:
+    st.session_state.best_model = None
+
 
 # TITLE
 st.title("Text Summarization Studio")
@@ -85,17 +100,12 @@ def run_model(model, text, length):
     elif model == "NLTK":
         summary = summarize_nltk(text)
 
-    
-    # ✅ CLEANING + FORMATTING
     summary = summary.strip()
 
     if summary:
         summary = summary[0].upper() + summary[1:]
-
-        # Optional: ensure it ends with a period
         if not summary.endswith("."):
             summary += "."
-
 
     end = time.time()
     return summary, round(end - start, 2)
@@ -107,7 +117,7 @@ if st.button("Summarize"):
         st.warning("Please enter some text.")
     else:
 
-        # 🔹 SINGLE MODE
+        # SINGLE MODE
         if mode == "Single Model":
 
             with st.spinner("Generating summary..."):
@@ -116,38 +126,16 @@ if st.button("Summarize"):
             rouge = calculate_rouge(text, summary)
             word_count = len(summary.split())
 
-            st.markdown(f"## Model: {model}")
-            st.markdown(f"**Model Type :** {model_type[model]}")
-            st.markdown(f"**Time Taken :** {time_taken} sec")
+            # ✅ STORE
+            st.session_state.single_result = {
+                "model": model,
+                "summary": summary,
+                "time": time_taken,
+                "rouge": rouge,
+                "words": word_count
+            }
 
-            st.markdown("### Summary")
-            st.write(summary)
-
-            st.markdown(f"**Word Count :** {word_count}")
-
-            
-            st.markdown("### ROUGE Scores")
-            st.markdown(f"**ROUGE-1&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{rouge['ROUGE-1']}", unsafe_allow_html=True)
-            st.markdown(f"**ROUGE-2&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{rouge['ROUGE-2']}", unsafe_allow_html=True)
-            st.markdown(f"**ROUGE-L&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{rouge['ROUGE-L']}", unsafe_allow_html=True)
-
-
-            file_content = (
-                f"Model       : {model}\n"
-                f"Model Type  : {model_type[model]}\n"
-                f"Word Count  : {word_count}\n\n"
-                f"Summary: \n\n{summary}\n"
-            )
-
-            st.download_button(
-                label="📥 Download Summary",
-                data=file_content,
-                file_name=f"{model}_summary.txt",
-                mime="text/plain"
-            )
-
-
-        # 🔹 COMPARE MODE
+        # COMPARE MODE
         else:
 
             models_list = list(model_type.keys())
@@ -166,7 +154,6 @@ if st.button("Summarize"):
                         "words": word_count
                     }
 
-            # BEST MODEL (UNCHANGED)
             def adjusted_score(data, model_name):
                 original_len = len(text.split())
                 if original_len == 0:
@@ -187,43 +174,164 @@ if st.button("Summarize"):
 
                 return score
 
-            best_model = max(results, key=lambda x: adjusted_score(results[x], x))
+            scores = {m: adjusted_score(results[m], m) for m in models_list}
+            best_model = max(scores, key=scores.get)
 
-            st.markdown(f"## 🏆 Best Model: {best_model}")
+            # ✅ STORE
+            st.session_state.compare_results = results
+            st.session_state.scores = scores
+            st.session_state.best_model = best_model
 
-            # SIMPLE SEPARATOR
-            st.markdown("---")
 
-            # SIMPLE DISPLAY
-            for m in models_list:
+# =========================
+# DISPLAY (PERSISTENT)
+# =========================
 
-                st.markdown(f"## Model: {m}")
-                st.markdown(f"**Model Type :** {model_type[m]}")
-                st.markdown(f"**Time Taken :** {results[m]['time']} sec")
+# SINGLE MODE DISPLAY
+if mode == "Single Model" and st.session_state.single_result:
 
-                st.markdown("### Summary")
-                st.write(results[m]["summary"])
+    data = st.session_state.single_result
 
-                st.markdown(f"**Word Count :** {results[m]['words']}")
+    st.markdown("---")
 
-                st.markdown("### ROUGE Scores")
-                st.markdown(f"**ROUGE-1&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{results[m]['rouge']['ROUGE-1']}", unsafe_allow_html=True)
-                st.markdown(f"**ROUGE-2&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{results[m]['rouge']['ROUGE-2']}", unsafe_allow_html=True)
-                st.markdown(f"**ROUGE-L&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{results[m]['rouge']['ROUGE-L']}", unsafe_allow_html=True)
+    st.markdown(f"## Model: {data['model']}")
+    st.markdown(f"**Model Type :** {model_type[data['model']]}")
+    st.markdown(f"**Time Taken :** {data['time']} sec")
 
-                file_content = (
-                    f"Model       : {m}\n"
-                    f"Model Type  : {model_type[m]}\n"
-                    f"Word Count  : {results[m]['words']}\n\n"
-                    f"Summary: \n\n{results[m]['summary']}\n"
-                )
+    st.markdown("### Summary")
+    st.write(data["summary"])
 
-                st.download_button(
-                    label=f"📥 Download {m} Summary",
-                    data=file_content,
-                    file_name=f"{m}_summary.txt",
-                    mime="text/plain"
-                )
+    st.markdown(f"**Word Count :** {data['words']}")
 
-                # SIMPLE SEPARATOR
-                st.markdown("---")
+    st.markdown("### ROUGE Scores")
+    st.markdown(f"**ROUGE-1&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{data['rouge']['ROUGE-1']}", unsafe_allow_html=True)
+    st.markdown(f"**ROUGE-2&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{data['rouge']['ROUGE-2']}", unsafe_allow_html=True)
+    st.markdown(f"**ROUGE-L&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{data['rouge']['ROUGE-L']}", unsafe_allow_html=True)
+
+    file_content = (
+        f"Model       : {data['model']}\n"
+        f"Model Type  : {model_type[data['model']]}\n"
+        f"Word Count  : {data['words']}\n\n"
+        f"Summary: \n\n{data['summary']}\n"
+    )
+
+    st.download_button(
+        label="📥 Download Summary",
+        data=file_content,
+        file_name=f"{data['model']}_summary.txt",
+        mime="text/plain"
+    )
+
+
+# COMPARE MODE DISPLAY
+if mode == "Compare All Models" and st.session_state.compare_results:
+
+    results = st.session_state.compare_results
+    scores = st.session_state.scores
+    best_model = st.session_state.best_model
+
+    models_list = list(results.keys())
+
+    st.markdown("---")
+    st.write("")
+
+    # BEST MODEL BOX
+    st.markdown(f"""
+    <div style="
+        display: block;
+        width: 100%;
+        padding: 18px;
+        border-radius: 14px;
+        background: linear-gradient(
+            rgba(0, 255, 150, 0.12),
+            rgba(0, 255, 150, 0.08)
+        ), var(--secondary-background-color);
+        border: 1px solid rgba(0, 255, 150, 0.5);
+        text-align: center;
+        font-weight: bold;
+        font-size: 20px;
+        color: var(--text-color);
+        box-shadow:
+            0 0 10px rgba(0,255,150,0.4),
+            0 0 20px rgba(0,255,150,0.3),
+            0 0 30px rgba(0,255,150,0.2);
+    ">
+        🏆 BEST MODEL → {best_model}
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    for m in models_list:
+
+        st.markdown(f"## Model: {m}")
+        st.markdown(f"**Model Type :** {model_type[m]}")
+        st.markdown(f"**Time Taken :** {results[m]['time']} sec")
+
+        st.markdown("### Summary")
+        st.write(results[m]["summary"])
+
+        st.markdown(f"**Word Count :** {results[m]['words']}")
+
+        st.markdown("### ROUGE Scores")
+        st.markdown(f"**ROUGE-1&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{results[m]['rouge']['ROUGE-1']}", unsafe_allow_html=True)
+        st.markdown(f"**ROUGE-2&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{results[m]['rouge']['ROUGE-2']}", unsafe_allow_html=True)
+        st.markdown(f"**ROUGE-L&nbsp;&nbsp;:** &nbsp;&nbsp;&nbsp;{results[m]['rouge']['ROUGE-L']}", unsafe_allow_html=True)
+
+        file_content = (
+            f"Model       : {m}\n"
+            f"Model Type  : {model_type[m]}\n"
+            f"Word Count  : {results[m]['words']}\n\n"
+            f"Summary: \n\n{results[m]['summary']}\n"
+        )
+
+        st.download_button(
+            label=f"📥 Download {m} Summary",
+            data=file_content,
+            file_name=f"{m}_summary.txt",
+            mime="text/plain"
+        )
+
+        st.markdown("---")
+
+    total_score = sum(scores.values())
+    performance_percent = {
+        m: round((scores[m] / total_score) * 100, 2) if total_score > 0 else 0
+        for m in models_list
+    }
+
+    sorted_models = sorted(performance_percent.items(), key=lambda x: x[1], reverse=True)
+
+    st.markdown("## 📊 Overall Model Performance (%)")
+
+    for i, (m, score) in enumerate(sorted_models, start=1):
+        st.markdown(f"**{i}. {m}** : {score}%")
+
+    labels = [m for m, _ in sorted_models]
+    sizes = [score for _, score in sorted_models]
+
+    fig, ax = plt.subplots()
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%')
+    ax.set_title("Overall Model Performance (Quality + Efficiency)")
+
+    st.pyplot(fig)
+
+    st.markdown("---")
+
+    all_content = f"🏆 BEST MODEL: {best_model}\n\n"
+
+    for m in models_list:
+        all_content += (
+            f"========== {m} ==========\n"
+            f"Model Type  : {model_type[m]}\n"
+            f"Word Count  : {results[m]['words']}\n\n"
+            f"Summary:\n{results[m]['summary']}\n\n"
+            f"----------------------------------------\n\n"
+        )
+
+    st.download_button(
+        label="📥 Download All Summaries",
+        data=all_content,
+        file_name="all_models_summary.txt",
+        mime="text/plain"
+    )
